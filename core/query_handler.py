@@ -1,5 +1,4 @@
-from typing import Union
-
+from datetime import datetime, timedelta
 from nlp.parser import parse_query
 from db.analytics import (
     get_total_views,
@@ -9,32 +8,36 @@ from db.analytics import (
 )
 
 
-def handle_query(text: str) -> Union[int, str]:
-    """
-    Обрабатывает текст пользователя и возвращает число
-    """
+def handle_query(text: str) -> int:
+    print(">>> handle_query TEXT:", text)
     query = parse_query(text)
+    print(">>> PARSED QUERY:", query)
 
-    metric = query["metric"]
-    qtype = query["type"]
-    period = query["period"]
+    # ❗ ЕСЛИ ЗАПРОС НЕ ПОДДЕРЖИВАЕТСЯ — НЕ СЧИТАЕМ
+    if not query.get("supported"):
+        return 0
 
-    # -------- TOTAL --------
+    metric = query.get("metric")
+    qtype = query.get("type")
+    period = query.get("period")
+
+    if not metric or not qtype:
+        return 0
+
+    # TOTAL
     if qtype == "total":
         if metric == "views":
             return get_total_views()
         if metric == "likes":
             return get_total_likes()
 
-    # -------- GROWTH --------
-    if qtype == "growth":
-        if metric == "views":
-            if period in ("today", "yesterday"):
-                return get_views_growth_for_period(
-                    query["start"],
-                    query["end"]
-                )
-            else:
-                return get_total_views_growth()
+    # GROWTH
+    if qtype == "growth" and metric == "views":
+        if period == "yesterday":
+            end = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            start = end - timedelta(days=1)
+            return get_views_growth_for_period(start, end)
+
+        return get_total_views_growth()
 
     return 0

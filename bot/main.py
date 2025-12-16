@@ -8,7 +8,8 @@ from aiogram import F
 from core.query_handler import handle_query
 
 
-BOT_TOKEN = "8569486818:AAGyoofzrtj5FfD13U0Htlu0HipzRB5ZwHU"
+import os
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
 logging.basicConfig(

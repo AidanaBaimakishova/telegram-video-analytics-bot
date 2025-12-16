@@ -1,48 +1,47 @@
-from datetime import datetime, timedelta
+from nlp.llm_parser import llm_parse_query
+print(">>> USING PARSER FROM:", __file__)
 
 
 def parse_query(text: str) -> dict:
-    """
-    Преобразует текст пользователя в структурированный запрос
-    """
-    text = text.lower()
+    t = text.lower()
 
-    result = {
-        "metric": None,   # views / likes / comments
-        "type": None,     # total / growth
-        "period": None,   # today / yesterday / custom
-        "start": None,
-        "end": None,
-    }
+    # ---------- RULE-BASED ----------
+    if any(w in t for w in ["просмотр", "просмотры", "просмотров"]):
+        if "прирост" not in t:
+            return {
+                "supported": True,
+                "metric": "views",
+                "type": "total",
+                "period": "all"
+            }
 
-    # ---------- МЕТРИКА ----------
-    if "просмотр" in text:
-        result["metric"] = "views"
-    elif "лайк" in text:
-        result["metric"] = "likes"
-    elif "комментар" in text:
-        result["metric"] = "comments"
+    if "прирост" in t and any(w in t for w in ["просмотр", "просмотры", "просмотров"]):
+        if "вчера" in t:
+            return {
+                "supported": True,
+                "metric": "views",
+                "type": "growth",
+                "period": "yesterday"
+            }
+        return {
+            "supported": True,
+            "metric": "views",
+            "type": "growth",
+            "period": "all"
+        }
 
-    # ---------- ТИП ----------
-    if "прирост" in text or "рост" in text:
-        result["type"] = "growth"
-    elif "всего" in text or "общее" in text or "сколько" in text:
-        result["type"] = "total"
+    if any(w in t for w in ["лайк", "лайки", "лайков"]):
+        return {
+            "supported": True,
+            "metric": "likes",
+            "type": "total",
+            "period": "all"
+        }
 
-    # ---------- ПЕРИОД ----------
-    today = datetime.now().date()
+    # ---------- LLM FALLBACK ----------
+    llm = llm_parse_query(text)
 
-    if "вчера" in text:
-        result["period"] = "yesterday"
-        result["start"] = datetime.combine(today - timedelta(days=1), datetime.min.time())
-        result["end"] = datetime.combine(today, datetime.min.time())
+    if llm.get("supported"):
+        return llm
 
-    elif "сегодня" in text:
-        result["period"] = "today"
-        result["start"] = datetime.combine(today, datetime.min.time())
-        result["end"] = datetime.combine(today + timedelta(days=1), datetime.min.time())
-
-    else:
-        result["period"] = "all"
-
-    return result
+    return {"supported": False}
