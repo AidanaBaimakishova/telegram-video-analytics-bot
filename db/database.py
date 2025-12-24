@@ -7,7 +7,7 @@ DATABASE_URL = "postgresql+psycopg2://postgres:123@localhost:5432/video_analytic
 # Создаём engine — точку входа в БД
 engine = create_engine(
     DATABASE_URL,
-    echo=True  # показывает SQL-запросы в консоли (очень полезно для тестового)
+    echo=False  # показывает SQL-запросы в консоли (очень полезно для тестового)
 )
 
 # Фабрика сессий
